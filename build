@@ -1,0 +1,6 @@
+echo "[BUILD SCRIPT] Updating package listing"
+cabal update
+echo "[BUILD SCRIPT] Configuring, Building, and Installing package"
+cabal run
+echo "[BUILD SCRIPT] Cleaning package"
+cabal clean
