@@ -29,7 +29,7 @@ findNextPresident state = if president state `elem` players state
 
 -- | Get a player by name from a game state. Nothing indicates player not found.
 getPlayer :: String -> HitlerState -> Maybe Player
-getPlayer search state = find ((==search).plaName) (players state)
+getPlayer search state = find ((==search) . plaName) (players state)
 
 unsafeGetPlayer :: String -> HitlerState -> Player
 unsafeGetPlayer = (fromJust .) . getPlayer 
@@ -66,9 +66,11 @@ clientToPlayer cli = newEmptyMVar >>= \x -> return Player {plaCli = cli, plaSecr
 
 askPlayerUntil :: (String -> Bool) -> String -> Player -> IO String
 askPlayerUntil pred s p = do
-  readed <- readMVar (comm p)
-  if pred readed
-    then return readed
+  tellPlayer ("Ask|" ++ s) p
+  readed <- takeMVar (comm p)
+  -- Drop 5 for the "Resp|" header
+  if length readed > 5 && pred (drop 5 readed)
+    then return $ drop 5 readed
     else askPlayerUntil pred s p
 
 applyVictories :: HitlerState -> HitlerState

@@ -12,6 +12,7 @@ import Control.Monad
 import Control.Concurrent
 import qualified Control.Monad.Parallel as Parr
 
+import Debug.Trace
 main = do
   hitlerStates <- newMVar []
   initialize [
@@ -61,6 +62,7 @@ hitlerMessage :: MVar [HitlerState] -> Client -> String -> IO ()
 hitlerMessage ks c s = do 
   kss <- readMVar ks
   forM_ kss $ mapM_ (\x -> when (plaCli x == c) $ putMVar (comm x) s). players
+  when ("Chat" `isPrefixOf` s) . forM_ kss $ \x -> when (cliName c `isPlayerInGame` x) $ tellEveryone s x 
   consoleLog $ "Got message: \"" ++ s ++ "\" from client " ++ cliName c
 
 doRound :: HitlerState -> IO HitlerState
