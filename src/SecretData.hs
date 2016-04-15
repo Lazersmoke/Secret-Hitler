@@ -43,8 +43,7 @@ data HitlerState = HitlerState {
   fascistPolicies :: Int,
   electionTracker :: Int,
   stopGame :: Maybe String,
-  shardName :: String,
-  ready :: Bool} deriving (Eq,Show)
+  shardName :: String} deriving (Eq,Show)
 
 debug :: Bool
 debug = True

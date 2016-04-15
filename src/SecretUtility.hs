@@ -80,9 +80,13 @@ applyVictories gs
   | otherwise = gs
 
 installPresident :: HitlerState -> HitlerState
-installPresident game = game {president = nextPresident game,
-                              nextPresident = findNextPresident game,
-                              previousGovernment = chancellor game : if playerCount game < 7 then [] else [president game]}
+installPresident game = game {
+  president = nextPresident game,
+  nextPresident = findNextPresident game {president = nextPresident game},
+  previousGovernment = chancellor game : 
+    if playerCount game < 7 
+      then [] 
+      else [president game]}
 
 freshDeck :: RandomGen gen => gen -> [Policy]
 freshDeck = shuffle' (replicate 6 (Policy Liberal) ++ replicate 11 (Policy Fascist)) 17 
@@ -104,7 +108,9 @@ isPolicyIn ps = (&&) <$> isPolicy <*> readElem ps
 bootstrapGame :: RandomGen gen => gen -> HitlerState -> HitlerState
 bootstrapGame gen gs = gs' 
   where
-    gs' = gs {nextPresident = findNextPresident gs', players = zipWith (\a b -> b {plaSecretIdentity = a}) shuffledIdMap (players gs), ready = False}
+    gs' = gs {
+      nextPresident = findNextPresident gs', 
+      players = zipWith (\a b -> b {plaSecretIdentity = a}) shuffledIdMap (players gs)}
     playerNum = playerCount gs
     shuffledIdMap = shuffle' identityMap (length identityMap) gen
     identityMap
@@ -125,8 +131,7 @@ newGameState plas gen = HitlerState {
   fascistPolicies = 0,
   electionTracker = 0,
   stopGame = Nothing,
-  shardName = shardNameList !! fst (randomR (0, length shardNameList - 1) gen),
-  ready = False} 
+  shardName = shardNameList !! fst (randomR (0, length shardNameList - 1) gen)} 
 
 freshGame :: RandomGen gen => [Player] -> gen -> HitlerState
 freshGame p g = bootstrapGame g . newGameState p $ g
