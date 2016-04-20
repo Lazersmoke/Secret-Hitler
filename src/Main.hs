@@ -47,7 +47,7 @@ givePlayerRoles gs = do
 playSecretHitler :: CommsList -> [Client] -> IO StopCode
 playSecretHitler hs clis = 
   if length clis < 5
-    then return $ Stop "Not Enough Players"
+    then return "Not Enough Players"
     else do 
       consoleLog "Starting Game" 
       plas <- mapM clientToPlayer clis
@@ -59,7 +59,7 @@ playSecretHitler hs clis =
       stopcode <- gameLoop bootedGame 
       tellEveryone stopcode bootedGame
       consoleLog $ "Shard " ++ shardName bootedGame ++ " terminated with " ++ show stopcode
-      return $ Stop stopcode
+      return stopcode
 
 hitlerMessage :: CommsList -> Client -> String -> IO ()
 hitlerMessage ks c s = do 
