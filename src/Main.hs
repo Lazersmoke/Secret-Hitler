@@ -7,20 +7,22 @@ import SecretUtility
 import Data.Maybe
 import Data.List
 import System.Random
+import Control.Arrow
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
 import qualified Control.Monad.Parallel as Parr
 
 import Debug.Trace
+type CommsList = MVar [(MVar String, String)]
 main = do
-  hitlerStates <- newMVar []
+  commsList <- newMVar []
   initialize [
     GameDescriptor {
-      playGame = playSecretHitler hitlerStates,
+      playGame = playSecretHitler commsList,
       descName = descriptorName,
       shardNames = ["HitlerServer","Kittens","Explode","Unicorn"],
-      onMessage = hitlerMessage hitlerStates}
+      onMessage = hitlerMessage commsList}
     ]
 
 givePlayerRoles :: HitlerState -> IO ()
@@ -42,7 +44,7 @@ givePlayerRoles gs = do
        ("Info|Hitler is ", Hitler)]
       (\(a,b) -> flip tellPlayer p $ a ++ (intercalate "\n" . map plaName . filter (hasId b) $ players gs))
 
-playSecretHitler :: MVar [HitlerState] -> [Client] -> IO StopCode
+playSecretHitler :: CommsList -> [Client] -> IO StopCode
 playSecretHitler hs clis = 
   if length clis < 5
     then return $ Stop "Not Enough Players"
@@ -51,18 +53,18 @@ playSecretHitler hs clis =
       plas <- mapM clientToPlayer clis
       -- bootstrapGame's last arg is a random generator
       bootedGame <- freshGame plas <$> newStdGen
-      modifyMVar_ hs $ return . (bootedGame:)
+      -- Add it to the game list
+      modifyMVar_ hs $ return . (map (comm &&& plaName) plas ++)
       givePlayerRoles bootedGame 
       stopcode <- gameLoop bootedGame 
       tellEveryone stopcode bootedGame
       consoleLog $ "Shard " ++ shardName bootedGame ++ " terminated with " ++ show stopcode
       return $ Stop stopcode
 
-hitlerMessage :: MVar [HitlerState] -> Client -> String -> IO ()
+hitlerMessage :: CommsList -> Client -> String -> IO ()
 hitlerMessage ks c s = do 
-  kss <- readMVar ks
-  forM_ kss $ mapM_ (\x -> when (plaCli x == c) $ putMVar (comm x) s). players
-  when ("Chat" `isPrefixOf` s) . forM_ kss $ \x -> when (cliName c `isPlayerInGame` x) $ tellEveryone s x 
+  comms <- readMVar ks
+  mapM_ (\x -> when (snd x == cliName c) $ putMVar (fst x) s) comms
   consoleLog $ "Got message: \"" ++ s ++ "\" from client " ++ cliName c
 
 doRound :: HitlerState -> IO HitlerState
