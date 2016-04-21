@@ -1,6 +1,6 @@
 module Game.SecretHitler.SecretUtility where
 
-import Game.Game
+import Game.NetworkedGameEngine
 import System.Random
 import System.Random.Shuffle
 import Control.Concurrent

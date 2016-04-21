@@ -1,6 +1,6 @@
 module Game.SecretHitler.SecretData where
 
-import Game.Game
+import Game.NetworkedGameEngine
 
 import Network.WebSockets as WS
 import Control.Monad

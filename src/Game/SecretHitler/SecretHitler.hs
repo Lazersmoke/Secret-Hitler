@@ -1,6 +1,6 @@
 module Game.SecretHitler.SecretHitler where
 
-import Game.Game
+import Game.NetworkedGameEngine
 
 import Game.SecretHitler.SecretData
 import Game.SecretHitler.SecretUtility
@@ -13,7 +13,6 @@ import Control.Monad
 import Control.Concurrent
 import qualified Control.Monad.Parallel as Parr
 
-import Debug.Trace
 type CommsList = MVar [(MVar String, String)]
 givePlayerRoles :: HitlerState -> IO ()
 givePlayerRoles gs = do
@@ -186,6 +185,7 @@ fascistAction gs
          tellEveryone ("Info|Rest in pieces, " ++ plaName player) gs
          tellEveryone ("Info|Confirmed not Hitler: " ++ plaName player) gs
          tellEveryone ("Disconnect|" ++ plaName player) gs
+         tellPlayer "Stop|You got shot in the face" player
          if plaName player == (plaName . nextPresident $ gs)
            then return $ gs {nextPresident = findNextPresident gs, players = delete player $ players gs}
          --Return the game without the player in it. RIP player
