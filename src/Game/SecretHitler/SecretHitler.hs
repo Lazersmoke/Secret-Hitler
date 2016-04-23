@@ -16,10 +16,10 @@ import qualified Control.Monad.Parallel as Parr
 type CommsList = MVar [(MVar String, String)]
 givePlayerRoles :: HitlerState -> IO ()
 givePlayerRoles gs = do
-  forM_ (players gs) (\p -> flip tellPlayer p $ "Info|You are " ++ (keyFromIdent . plaSecretIdentity $ p))
+  mapM_ (\p -> flip tellPlayer p $ "Info|You are " ++ (keyFromIdent . plaSecretIdentity $ p)) (players gs)
   if (length . players $ gs) > 6
-    then forM_ (filter (hasId $ NotHitler Fascist) $ players gs) tellEverything
-    else forM_ (filter ((||) <$> hasId (NotHitler Fascist) <*> hasId Hitler) $ players gs) tellEverything
+    then mapM_ tellEverything (filter (hasId $ NotHitler Fascist) $ players gs)
+    else mapM_ tellEverything (filter ((||) <$> hasId (NotHitler Fascist) <*> hasId Hitler) $ players gs) 
   where
     keyFromIdent si = case si of
                         NotHitler Liberal -> "liberal"
@@ -71,7 +71,7 @@ doRound game = do
         flip tellEveryone game' $ case head . deck $ game' of
           Policy Fascist -> "Info|A Fascist Policy was played!"
           Policy Liberal -> "Info|A Liberal Policy was played!"
-        return $ (passPolicy game' . head . deck $ game') {electionTracker = 0, deck = tail . deck $ game'}
+        enactPolicy game' {electionTracker = 0, deck = tail . deck $ game'} (head . deck $ game') False   
       else return game' -- Election tracker modified in electGovernment
 
 gameLoop :: HitlerState -> IO String
@@ -131,24 +131,27 @@ legislativeSession state = do
                  (chancellor state)
   if isJust playcardm
     then do
-      let playcard = fromJust playcardm 
       -- Move first three cards of the old deck to the back
-      let newdeck = drop 3 $ deck state ++ delete playcard drawn
-      --Pass the policy and check victories
-      let newstate = applyVictories $ passPolicy (state {deck = newdeck}) playcard
-      --Do the special fascist action if a fascist policy is passed
-      case playcard of
-        Policy Fascist -> do
-          tellEveryone "Info|A Fascist Policy was played!" state
-          fascistAction newstate 
-        Policy Liberal -> do 
-          tellEveryone "Info|A Liberal Policy was played!" state
-          return newstate
-  else do
-    tellEveryone "Info|The agenda was vetoed!" state
-    return $ state {deck = (drop 3 . deck $ state) ++ drawn}
+      let newdeck = drop 3 $ deck state ++ delete (fromJust playcardm) drawn
+      enactPolicy state {deck = newdeck} (fromJust playcardm) True
+    else do
+      tellEveryone "Info|The agenda was vetoed!" state
+      return $ state {deck = (drop 3 . deck $ state) ++ drawn}
   where
     drawn = take 3 $ deck state
+
+enactPolicy :: HitlerState -> Policy -> Bool -> IO HitlerState
+enactPolicy state playcard fasc = do
+  --Pass the policy and check victories
+  let newstate = applyVictories $ passPolicy state playcard
+  --Do the special fascist action if a fascist policy is passed
+  case playcard of
+    Policy Fascist -> do
+      tellEveryone "Info|A Fascist Policy was played!" state
+      if fasc then fascistAction newstate else return newstate
+    Policy Liberal -> do 
+      tellEveryone "Info|A Liberal Policy was played!" state
+      return newstate
 
 fascistAction :: HitlerState -> IO HitlerState
 fascistAction gs 
